@@ -8,7 +8,7 @@ version = "0.2.0"
 description = "Tabsdata connector that reads publisher tables from and writes subscriber tables to MotherDuck."
 requires-python = ">=3.12"
 dependencies = [
-    "tabsdata>=2.1,<2.2",
+    "tabsdata>=2.1",
     "duckdb>=1.3",
 ]
 

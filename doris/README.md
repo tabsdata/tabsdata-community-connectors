@@ -8,7 +8,7 @@ connection, a destination, a plugin and error codes.
 | --- | --- | --- | --- |
 | Destination | `DorisDestConn` | `DorisDest` | `doris-bulk-out` |
 
-Requires Tabsdata 2.1 and Apache Doris 2.1 or later, with its MySQL port (9030)
+Requires Tabsdata 2.1 or later and Apache Doris 2.1 or later, with its MySQL port (9030)
 and a stream load HTTP port reachable from the Tabsdata server.
 
 ## Install

@@ -8,7 +8,7 @@ and writes subscriber tables back to MotherDuck.
 | Source | `MotherDuckSrcConn` | `MotherDuckSrc` | `motherduck-in` |
 | Destination | `MotherDuckDestConn` | `MotherDuckDest` | `motherduck-out` |
 
-Requires Tabsdata 2.1 and `duckdb` 1.3 or later.
+Requires Tabsdata 2.1 or later and `duckdb` 1.3 or later.
 
 ## Install
 

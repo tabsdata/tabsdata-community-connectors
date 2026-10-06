@@ -10,7 +10,7 @@ requires-python = ">=3.12"
 # pymysql, requests and pyarrow are left unpinned so the versions tabsdata pins
 # are used
 dependencies = [
-    "tabsdata>=2.1,<2.2",
+    "tabsdata>=2.1",
     "pymysql",
     "requests",
     "pyarrow",
