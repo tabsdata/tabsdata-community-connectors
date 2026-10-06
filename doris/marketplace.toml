@@ -1,5 +1,5 @@
 # how this connector is listed on the Community Connectors page of the Tabsdata
 # docs, see "Docs site listing" in the repo README
 name = "Apache Doris"
-summary = "Reads Apache Doris query results into a Tabsdata publisher and loads subscriber tables into existing Doris tables."
+summary = "Apache Doris is an open-source, real-time analytical database built for fast SQL queries over large datasets. Apache Doris"
 icon = "icon.svg"
