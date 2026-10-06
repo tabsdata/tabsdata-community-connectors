@@ -8,7 +8,7 @@ import uuid
 from pathlib import Path
 
 from tabsdatak.conn.common.types import _convert, cloud_full_path
-from tabsdata_doris import CloudLocation, DorisDestConn, S3Location
+from tabsdata_doris import CloudLocation, DorisDestConn, DorisSrcConn, S3Location
 from tabsdata_doris.error import DorisErrorCode
 
 logger = logging.getLogger(__name__)
@@ -23,8 +23,8 @@ SYSTEM_COLUMN_PREFIX = "$td."
 
 
 # helper function that opens a mysql protocol connection to the doris frontend,
-# used for the table lookups and truncates
-def connect(conn: DorisDestConn):
+# used for the table lookups and truncates, and by the source for its queries
+def connect(conn: DorisSrcConn | DorisDestConn):
     import pymysql
 
     try:
@@ -156,21 +156,25 @@ def _kv(items: dict[str, str]) -> str:
     return ", ".join(f'"{k}" = "{v}"' for k, v in items.items())
 
 
-# helper function that builds the S3() table function call for a staged file,
-# doris needs the endpoint so it's derived from the region
-def build_s3_function(staging: CloudLocation, staged: str) -> str:
+# helper function that returns the properties doris needs to reach the staging
+# location, shared by the S3() table function and SELECT ... INTO OUTFILE. doris
+# needs the endpoint so it's derived from the region
+def s3_properties(staging: CloudLocation) -> dict[str, str]:
     if isinstance(staging, S3Location):
         creds = staging.credentials
         region = staging._region()
-        return "S3(" + _kv({
-            "uri": staged,
-            "format": "parquet",
+        return {
             "s3.endpoint": f"https://s3.{region}.amazonaws.com",
             "s3.region": region,
             "s3.access_key": _convert(creds.access_key_id, str),
             "s3.secret_key": _convert(creds.secret_access_key, str),
-        }) + ")"
+        }
     raise DorisErrorCode.DORIS_13.exception(kind=type(staging).__name__)
+
+
+# helper function that builds the S3() table function call for a staged file
+def build_s3_function(staging: CloudLocation, staged: str) -> str:
+    return "S3(" + _kv({"uri": staged, "format": "parquet", **s3_properties(staging)}) + ")"
 
 
 # helper function that renders the uri of a key under the staging location in

@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tabsdata-conn-doris"
-version = "0.1.0"
-description = "Tabsdata destination connector that stream loads subscriber tables into Apache Doris."
+version = "0.2.0"
+description = "Tabsdata connector that reads publisher tables from and loads subscriber tables into Apache Doris."
 requires-python = ">=3.12"
 # pymysql, requests and pyarrow are left unpinned so the versions tabsdata pins
 # are used
@@ -16,9 +16,14 @@ dependencies = [
     "pyarrow",
 ]
 
+# the arrow flight sql driver is only needed for DorisSrc(read_method="arrow_flight")
+[project.optional-dependencies]
+arrow-flight = ["adbc-driver-flightsql>=1.0"]
+
 # entry point tabsdata uses to discover the connector, same mechanism as its
 # built in connectors
 [project.entry-points."tabsdatak.connectors"]
+src_doris = "tabsdata_doris._plugin:DORIS_SRC"
 dest_doris = "tabsdata_doris._plugin:DORIS_DEST"
 
 [tool.setuptools.packages.find]

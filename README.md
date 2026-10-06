@@ -7,7 +7,7 @@ Each connector lives in its own folder and Python package. Tabsdata discovers in
 | Connector | Folder | Source | Destination | Package |
 | --- | --- | --- | --- | --- |
 | MotherDuck | [`motherduck/`](motherduck/) | yes | yes | `tabsdata-conn-motherduck` |
-| Apache Doris | [`doris/`](doris/) | no | yes | `tabsdata-conn-doris` |
+| Apache Doris | [`doris/`](doris/) | yes | yes | `tabsdata-conn-doris` |
 
 These connectors require Tabsdata 2.1 or later.
 
