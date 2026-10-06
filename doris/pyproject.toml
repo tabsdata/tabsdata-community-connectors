@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tabsdata-conn-doris"
+version = "0.1.0"
+description = "Tabsdata destination connector that stream loads subscriber tables into Apache Doris."
+requires-python = ">=3.12"
+# pymysql, requests and pyarrow are left unpinned so the versions tabsdata pins
+# are used
+dependencies = [
+    "tabsdata>=2.1,<2.2",
+    "pymysql",
+    "requests",
+    "pyarrow",
+]
+
+# entry point tabsdata uses to discover the connector, same mechanism as its
+# built in connectors
+[project.entry-points."tabsdatak.connectors"]
+dest_doris = "tabsdata_doris._plugin:DORIS_DEST"
+
+[tool.setuptools.packages.find]
+where = ["src"]
