@@ -54,11 +54,6 @@ class DorisErrorCode(ErrorCode):
     )
     DORIS_18 = ErrorDef(
         DorisRuntimeException,
-        "DorisSrc read_method 'arrow_flight' needs the adbc-driver-flightsql package, "
-        "install tabsdata-conn-doris[arrow-flight]",
-    )
-    DORIS_19 = ErrorDef(
-        DorisRuntimeException,
         "DorisSrc read_method 's3' needs a staging location on the collection's DorisSrcConn",
     )
-    DORIS_20 = ErrorDef(DorisRuntimeException, "download of the exported parquet from {uri} failed")
+    DORIS_19 = ErrorDef(DorisRuntimeException, "download of the exported parquet from {uri} failed")

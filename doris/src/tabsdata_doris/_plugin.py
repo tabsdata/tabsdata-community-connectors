@@ -37,7 +37,7 @@ class DorisSrcPlugin(SrcPlugin[DorisSrcConn, DorisSrc]):
         if src.read_method == "arrow_flight" and conn._arrow_flight_port() is None:
             raise DorisErrorCode.DORIS_17.exception()
         if src.read_method == "s3" and conn.staging is None:
-            raise DorisErrorCode.DORIS_19.exception()
+            raise DorisErrorCode.DORIS_18.exception()
 
         values = _read.bind_values(ctx, src)
         queries = [_read.render(query, values) for query in src.queries]

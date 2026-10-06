@@ -32,13 +32,6 @@ tdkserver venv update --instance tabsdata --name fn --requirements requirements-
 tdkserver start --instance tabsdata --yes
 ```
 
-To read with `read_method="arrow_flight"`, install the `arrow-flight` extra in
-both places instead. It adds the `adbc-driver-flightsql` package:
-
-```bash
-pip install "tabsdata-conn-doris[arrow-flight] @ git+https://github.com/tabsdata/tabsdata-community-connectors.git#subdirectory=doris"
-```
-
 ## Source connection
 
 ```yaml
@@ -94,7 +87,7 @@ Each publisher picks one of three read methods with `read_method`:
 | `read_method` | How the data gets out | Needs |
 | --- | --- | --- |
 | `mysql` (default) | the result is streamed over the MySQL protocol in batches of 65,536 rows | nothing extra |
-| `arrow_flight` | the frontend plans the query and the result is fetched from the backends as Arrow batches over [Arrow Flight SQL](https://doris.apache.org/docs/db-connect/arrow-flight-sql-connect) | `arrow_flight_port` on the connection and the `arrow-flight` extra |
+| `arrow_flight` | the frontend plans the query and the result is fetched from the backends as Arrow batches over [Arrow Flight SQL](https://doris.apache.org/docs/db-connect/arrow-flight-sql-connect) | `arrow_flight_port` on the connection |
 | `s3` | `SELECT ... INTO OUTFILE` has the backends export the result as parquet to S3, then the files are downloaded | a `staging` bucket on the connection that the Doris backends can write to |
 
 `mysql` works against any Doris and suits small and medium results. Every value

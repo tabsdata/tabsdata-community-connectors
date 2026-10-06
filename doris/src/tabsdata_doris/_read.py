@@ -139,10 +139,7 @@ def read_mysql(connection, index: int, query: str, work_dir: Path) -> Path:
 
 
 def connect_arrow_flight(conn: DorisSrcConn):
-    try:
-        import adbc_driver_flightsql.dbapi as flight_sql
-    except ImportError as e:
-        raise DorisErrorCode.DORIS_18.exception(cause=e)
+    import adbc_driver_flightsql.dbapi as flight_sql
 
     port = conn._arrow_flight_port()
     try:
@@ -230,7 +227,7 @@ def read_s3(connection, conn: DorisSrcConn, index: int, query: str, work_dir: Pa
             fs.copy_files(path, str(target), source_filesystem=s3, destination_filesystem=fs.LocalFileSystem())
             files.append(target)
     except OSError as e:
-        raise DorisErrorCode.DORIS_20.exception(cause=e, uri=uri)
+        raise DorisErrorCode.DORIS_19.exception(cause=e, uri=uri)
 
     if not files:
         # an empty result may export no file, so the empty table is read over

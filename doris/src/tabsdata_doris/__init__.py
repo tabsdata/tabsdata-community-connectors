@@ -146,10 +146,9 @@ class DorisSrc(Src):
     seeds the :name bind parameters in the queries on the first run, later runs
     bind the value the publisher stored with ctx.set_attr(name, value) so a
     query can pick up where the last run stopped. read_method defaults to mysql,
-    arrow_flight needs arrow_flight_port on the connection and the
-    adbc-driver-flightsql package, s3 needs a staging location on the
-    connection and suits large results since every backend writes its part of
-    the export in parallel
+    arrow_flight needs arrow_flight_port on the connection, s3 needs a staging
+    location on the connection and suits large results since every backend
+    writes its part of the export in parallel
     """
 
     queries: QueriesSpec

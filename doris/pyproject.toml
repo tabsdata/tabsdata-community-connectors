@@ -14,11 +14,9 @@ dependencies = [
     "pymysql",
     "requests",
     "pyarrow",
+    # arrow flight sql driver for DorisSrc(read_method="arrow_flight")
+    "adbc-driver-flightsql>=1.0",
 ]
-
-# the arrow flight sql driver is only needed for DorisSrc(read_method="arrow_flight")
-[project.optional-dependencies]
-arrow-flight = ["adbc-driver-flightsql>=1.0"]
 
 # entry point tabsdata uses to discover the connector, same mechanism as its
 # built in connectors
