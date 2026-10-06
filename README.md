@@ -1,47 +1,57 @@
 # Tabsdata community connectors
 
-Connectors for [Tabsdata](https://docs.tabsdata.com) that aren't built in. Each
-folder is its own Python package. Tabsdata discovers it through the
-`tabsdatak.connectors` entry point, the same way it discovers its built-in
-connectors.
+Community connectors add support for systems that are not built into [Tabsdata](https://docs.tabsdata.com).
+
+Each connector lives in its own folder and Python package. Tabsdata discovers installed connectors through the `tabsdatak.connectors` entry point, the same way it loads built-in connectors.
 
 | Connector | Folder | Source | Destination | Package |
 | --- | --- | --- | --- | --- |
 | MotherDuck | [`motherduck/`](motherduck/) | yes | yes | `tabsdata-conn-motherduck` |
 | Apache Doris | [`doris/`](doris/) | no | yes | `tabsdata-conn-doris` |
 
-All connectors require Tabsdata 2.1.
+These connectors require Tabsdata 2.1.
 
-## Installing a connector
+## Install a connector
 
-A connector has to be installed in two places:
+Install the connector both where you run `tdk` and in the Tabsdata server function environment.
 
-1. Where you run `tdk`, so it can validate connections and register functions:
+First, install it in your local `tdk` environment:
 
-   ```bash
-   pip install "tabsdata-conn-motherduck @ git+https://github.com/tabsdata/tabsdata-community-connectors.git#subdirectory=motherduck"
-   ```
-
-2. In the server's function environment, where the functions run. `venv update`
-   stops the server, so start it again afterwards:
-
-   ```bash
-   echo "tabsdata-conn-motherduck @ git+https://github.com/tabsdata/tabsdata-community-connectors.git#subdirectory=motherduck" > requirements-fn.txt
-   tdkserver venv update --instance tabsdata --name fn --requirements requirements-fn.txt --yes
-   tdkserver start --instance tabsdata --yes
-   ```
-
-Swap `motherduck` for the connector's folder and package name. Each connector's
-README covers its connection, configuration and errors.
-
-## Layout of a connector
-
+```bash
+pip install "tabsdata-conn-motherduck @ git+https://github.com/tabsdata/tabsdata-community-connectors.git#subdirectory=motherduck"
 ```
+
+Then install it in the server function environment:
+
+```bash
+echo "tabsdata-conn-motherduck @ git+https://github.com/tabsdata/tabsdata-community-connectors.git#subdirectory=motherduck" > requirements-fn.txt
+
+tdkserver venv update --instance tabsdata --name fn --requirements requirements-fn.txt --yes
+tdkserver start --instance tabsdata --yes
+```
+
+`venv update` stops the server, so it needs to be started again afterward.
+
+For another connector, replace `motherduck` with that connector's folder and package name.
+
+Each connector's README includes its connection setup, configuration options, and errors.
+
+## Connector layout
+
+```text
 <connector>/
-  pyproject.toml          package metadata and the tabsdatak.connectors entry points
+  pyproject.toml
   README.md
   src/tabsdata_<name>/
-    __init__.py           connection and source/destination config classes
-    _plugin.py            the plugin that reads or writes, and its SrcDef/DestDef
-    error.py              error codes
+    __init__.py
+    _plugin.py
+    error.py
 ```
+
+`pyproject.toml` contains the package metadata and `tabsdatak.connectors` entry point.
+
+Inside `src/tabsdata_<name>/`:
+
+- `__init__.py` defines the connection and source or destination configuration classes.
+- `_plugin.py` contains the connector implementation and its `SrcDef` or `DestDef`.
+- `error.py` defines connector error codes.
