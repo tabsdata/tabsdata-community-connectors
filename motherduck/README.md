@@ -43,18 +43,20 @@ tdk connection template --type motherduck-out --file conn-motherduck-out.yaml
 
 ### Step 2: Fill out the connection document
 
-Define
+Enter your MotherDuck API token and Motherduck database to connect into.
 
+Publisher:
 ```yaml
 kind: connectionDef
 apiVersion: '1.0'
 type: tabsdata_motherduck:MotherDuckSrcConn
 spec:
-  token: $secret:MOTHERDUCK__TOKEN
+  token: secret:MOTHERDUCK__TOKEN
   database: str:my_db
 ```
 
-`tdk` resolves `$secret:MOTHERDUCK__TOKEN` from the environment variable of the same name and stores it as a secret.
+Subscriber:
+<Add Subscriber>
 
 ### Step 6: Attach the connections to collections
 
@@ -79,7 +81,7 @@ def pub_motherduck(customers, orders):
     return customers, orders
 ```
 
-Register it into Tabsdata:
+Register this function into Tabsdata:
 
 ```bash
 tdk fn register --coll md_landing --path pub_motherduck.py::pub_motherduck
