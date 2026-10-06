@@ -56,7 +56,14 @@ spec:
 ```
 
 Subscriber:
-<Add Subscriber>
+```yaml
+kind: connectionDef
+apiVersion: '1.0'
+type: tabsdata_motherduck:MotherDuckDestConn
+spec:
+  token: secret:MOTHERDUCK__TOKEN
+  database: str:my_db
+```
 
 ### Step 6: Attach the connections to collections
 
