@@ -2,24 +2,15 @@
 
 The MotherDuck connector lets Tabsdata run queries against [MotherDuck](https://motherduck.com) and write tables into MotherDuck.
 
-The `MotherDuckSrc` connector can be used by a publisher function to read data from MotherDuck into a Tabsdata table.
-
-The `MotherDuckDest` connector can be used by a subscriber function to write data from a Tabsdata table into MotherDuck.
-
 ## Installing the connector
 
-The connector package must be installed in two places:
-
-1. Wherever `tdk` runs locally, so Tabsdata can validate connections and register functions.
-2. In the server's function environment, so the connector is available when those functions execute.
-
-### Step 1: Install the package where tdk runs
+### Step 1: Install the connector package
 
 ```bash
 pip install "tabsdata-conn-motherduck @ git+https://github.com/tabsdata/tabsdata-community-connectors.git#subdirectory=motherduck"
 ```
 
-### Step 2: Add the package to the server's function environment
+### Step 2: Add the package to the Tabsdata's function environment
 
 Add this line to a `requirements.txt`:
 
@@ -27,22 +18,20 @@ Add this line to a `requirements.txt`:
 tabsdata-conn-motherduck @ git+https://github.com/tabsdata/tabsdata-community-connectors.git#subdirectory=motherduck
 ```
 
-### Step 3: Update the server's function environment
+then push the new `requirements.txt` to Tabsdata:
 
 ```bash
 tdkserver venv update --name fn --requirements requirements.txt
 tdkserver start
 ```
 
-`tdkserver venv update` stops the server, so `tdkserver start` starts it again.
-
 > **Warning:** `tdkserver venv update` overwrites Tabsdata's existing list of package requirements. Include every package the environment still needs in `requirements.txt`, not just this one.
 
 ## Using the connector
 
-### Step 4: Generate the connection documents
+### Step 1: Generate the connection documents
 
-Run `tdk connection types` to confirm that `tdk` can discover `motherduck-in` and `motherduck-out`, then generate the template for each connection you need:
+Generate the necessary connection document templates: 
 
 ```bash
 # for a publisher
@@ -52,9 +41,9 @@ tdk connection template --type motherduck-in --file conn-motherduck-in.yaml
 tdk connection template --type motherduck-out --file conn-motherduck-out.yaml
 ```
 
-### Step 5: Fill out the connection documents
+### Step 2: Fill out the connection document
 
-The `spec` fields are described under [Publisher](#publisher) and [Subscriber](#subscriber) below. A completed publisher connection looks like this:
+Define
 
 ```yaml
 kind: connectionDef
