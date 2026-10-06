@@ -51,11 +51,11 @@ kind: connectionDef
 apiVersion: '1.0'
 type: tabsdata_motherduck:MotherDuckSrcConn
 spec:
-  token: $secret:MOTHERDUCK__TOKEN
+  token: secret:MOTHERDUCK__TOKEN
   database: str:my_db
 ```
 
-`tdk` resolves `$secret:MOTHERDUCK__TOKEN` from the environment variable with the same name and stores it as a secret.
+If a `secret:` prefix is provided, Tabsdata stores the resolved token as a secret and removes it from the stored connection document. The `str:` prefix marks `my_db` as plaintext, so the database name remains visible in the connection document.
 
 ### Step 3: Attach the connection to a collection
 
@@ -67,7 +67,7 @@ To create a new collection with the connection instead, pass the same `--conn-fi
 
 ### Step 4: Create a publisher
 
-Configure `MotherDuckSrc` as the publisher's `source`. Each query maps positionally to an output table and function argument.
+Configure `MotherDuckSrc` as the publisher's `source` and provide `queries` to execute against your motherduck db.
 
 ```python
 from tabsdatak.api import publisher
@@ -104,8 +104,6 @@ For publishers, the token only needs read access.
 #### `database`
 
 The MotherDuck database the queries run against.
-
-The database must already exist.
 
 ### Publisher parameters
 
@@ -163,10 +161,6 @@ def new_orders(orders, ctx: TrxCtx):
 
     return orders
 ```
-
-Each query receives only the parameters it references.
-
-A query that references a parameter that is missing from `initial_values` fails.
 
 ## Subscriber
 
