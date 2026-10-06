@@ -1,38 +1,118 @@
 # Apache Doris connector
 
-Reads [Apache Doris](https://doris.apache.org) query results into a Tabsdata
-publisher and loads subscriber tables into existing Doris tables. It follows the
-structure of the built-in StarRocks connector: connections, a source, a
-destination, plugins and error codes.
+The Apache Doris connector lets Tabsdata run queries against [Apache Doris](https://doris.apache.org) and load tables into Doris.
 
-| Role | Connection | Config | Registered as |
-| --- | --- | --- | --- |
-| Source | `DorisSrcConn` | `DorisSrc` | `doris-bulk-in` |
-| Destination | `DorisDestConn` | `DorisDest` | `doris-bulk-out` |
+The `DorisSrc` connector can be used by a publisher function to read data from Doris into a Tabsdata table.
 
-Requires Tabsdata 2.1 or later and Apache Doris 2.1 or later, with its MySQL port
-(9030) reachable from the Tabsdata server. The destination also needs a stream
-load HTTP port.
+The `DorisDest` connector can be used by a subscriber function to write data from a Tabsdata table into Doris.
 
-## Install
+The connector needs Apache Doris 2.1 or later, with its MySQL protocol port (9030) reachable from the Tabsdata server.
 
-Install the connector where you run `tdk`, so it can validate the connection and
-register functions:
+## Installing the connector
+
+The connector package must be installed in two places:
+
+1. Wherever `tdk` runs locally, so Tabsdata can validate connections and register functions.
+2. In the server's function environment, so the connector is available when those functions execute.
+
+### Step 1: Install the package where tdk runs
 
 ```bash
 pip install "tabsdata-conn-doris @ git+https://github.com/tabsdata/tabsdata-community-connectors.git#subdirectory=doris"
 ```
 
-Then install it in the server's function environment, where the functions run.
-`venv update` stops the server, so start it again afterwards:
+### Step 2: Add the package to the server's function environment
 
-```bash
-echo "tabsdata-conn-doris @ git+https://github.com/tabsdata/tabsdata-community-connectors.git#subdirectory=doris" > requirements-fn.txt
-tdkserver venv update --instance tabsdata --name fn --requirements requirements-fn.txt --yes
-tdkserver start --instance tabsdata --yes
+Add this line to a `requirements.txt`:
+
+```text
+tabsdata-conn-doris @ git+https://github.com/tabsdata/tabsdata-community-connectors.git#subdirectory=doris
 ```
 
-## Source connection
+### Step 3: Update the server's function environment
+
+```bash
+tdkserver venv update --name fn --requirements requirements.txt
+tdkserver start
+```
+
+`tdkserver venv update` stops the server, so `tdkserver start` starts it again.
+
+> **Warning:** `tdkserver venv update` overwrites Tabsdata's existing list of package requirements. Include every package the environment still needs in `requirements.txt`, not just this one.
+
+## Using the connector
+
+### Step 4: Generate the connection documents
+
+Run `tdk connection types` to confirm that `tdk` can discover `doris-bulk-in` and `doris-bulk-out`, then generate the template for each connection you need:
+
+```bash
+# for a publisher
+tdk connection template --type doris-bulk-in --file conn-doris-in.yaml
+
+# for a subscriber
+tdk connection template --type doris-bulk-out --file conn-doris-out.yaml
+```
+
+### Step 5: Fill out the connection documents
+
+The `spec` fields are described under [Publisher](#publisher) and [Subscriber](#subscriber) below. A completed publisher connection looks like this:
+
+```yaml
+kind: connectionDef
+apiVersion: '1.0'
+type: tabsdata_doris:DorisSrcConn
+spec:
+  host: str:127.0.0.1
+  port: str:9030
+  credentials:
+    kind: userPasswordCredentials
+    apiVersion: '1.0'
+    type: tabsdatak.conn.common.types:UserPassword
+    spec:
+      user: $secret:DORIS__USER
+      password: $secret:DORIS__PASSWORD
+  database: str:my_db
+```
+
+`tdk` resolves each `$secret:NAME` from the environment variable of the same name and stores it as a secret.
+
+### Step 6: Attach the connections to collections
+
+```bash
+tdk collection update --name doris_landing --conn-file conn-doris-in.yaml
+```
+
+To create a new collection with the connection instead, pass the same `--conn-file` to `tdk collection create`.
+
+### Step 7: Use the connector in a function
+
+```python
+from tabsdatak.api import publisher
+from tabsdata_doris import DorisSrc
+
+
+@publisher(
+    source=DorisSrc(queries=["SELECT * FROM log_events", "SELECT * FROM checkout_requests"]),
+    output_tables=["log_events", "checkout_requests"],
+)
+def pub_doris(log_events, checkout_requests):
+    return log_events, checkout_requests
+```
+
+Register it into Tabsdata:
+
+```bash
+tdk fn register --coll doris_landing --path pub_doris.py::pub_doris
+```
+
+## Publisher
+
+The `DorisSrc` connector can be used by a publisher function to read data from Doris into a Tabsdata table.
+
+### Connection
+
+Doris publishers use `DorisSrcConn` to define the frontend address, credentials and database the publisher's queries run against.
 
 ```yaml
 kind: connectionDef
@@ -52,22 +132,35 @@ spec:
   database: str:my_db
 ```
 
-| Field | Default | What it's for |
-| --- | --- | --- |
-| `host` | | the Doris frontend |
-| `port` | `9030` | the MySQL protocol port, used by the `mysql` and `s3` read methods |
-| `arrow_flight_port` | none | the frontend's `arrow_flight_sql_port`, needed only for `read_method="arrow_flight"` |
-| `credentials` | | user and password; the user only needs `SELECT` |
-| `database` | | the database the queries run against |
-| `staging` | none | an `S3Location`, needed only for `read_method="s3"` (see [S3 staging](#s3-staging)) |
+### Connection Config Parameters
 
-Source and destination connections are separate types, the same as the built-in
-connectors, so a read-only user can't be registered for a destination.
+#### `host`
 
-## Source
+The address of the Doris frontend.
 
-`DorisSrc` runs each query in `queries` and publishes each result as one table,
-in the order of `output_tables`:
+#### `port`
+
+The frontend's MySQL protocol port. Defaults to `9030`.
+
+#### `arrow_flight_port`
+
+The frontend's `arrow_flight_sql_port`. Only needed for `read_method="arrow_flight"`.
+
+#### `credentials`
+
+The Doris user and password. The user only needs `SELECT`.
+
+#### `database`
+
+The Doris database the queries run against.
+
+#### `staging`
+
+An S3 bucket that Doris exports query results to. Only needed for `read_method="s3"`. See [S3 staging](#s3-staging).
+
+### Publisher
+
+Configure `DorisSrc` as the `source` of a publisher function to select the queries that Tabsdata runs against Doris.
 
 ```python
 from tabsdatak.api import publisher
@@ -75,55 +168,24 @@ from tabsdata_doris import DorisSrc
 
 
 @publisher(
-    source=DorisSrc(queries=["SELECT * FROM log_events", "SELECT * FROM checkout_requests"]),
-    output_tables=["log_events", "checkout_requests"],
+    source=DorisSrc(queries=["SELECT * FROM orders"], read_method="mysql"),
+    output_tables=["orders"],
 )
-def from_doris(log_events, checkout_requests):
-    return log_events, checkout_requests
+def publish_orders(orders):
+    return orders
 ```
 
-Each publisher picks one of three read methods with `read_method`:
+### Function Config Parameters
 
-| `read_method` | How the data gets out | Needs |
-| --- | --- | --- |
-| `mysql` (default) | the result is streamed over the MySQL protocol in batches of 65,536 rows | nothing extra |
-| `arrow_flight` | the frontend plans the query and the result is fetched from the backends as Arrow batches over [Arrow Flight SQL](https://doris.apache.org/docs/db-connect/arrow-flight-sql-connect) | `arrow_flight_port` on the connection |
-| `s3` | `SELECT ... INTO OUTFILE` has the backends export the result as parquet to S3, then the files are downloaded | a `staging` bucket on the connection that the Doris backends can write to |
+#### `queries`
 
-`mysql` works against any Doris and suits small and medium results. Every value
-is converted row by row, so it is the slowest method.
+Defines the SQL queries the publisher runs against Doris.
 
-`arrow_flight` suits large results. Nothing is converted row by row, and the
-column types arrive exactly as Doris stores them. Arrow Flight SQL is off by
-default: set `arrow_flight_sql_port` in both `fe.conf` and `be.conf`, then
-restart Doris. The client fetches from each backend at the address the frontend
-reports for it, so the backends have to be reachable from the Tabsdata server.
-That's the same problem as stream loads on Docker Desktop.
+Each element in `queries` represents one source slot and maps positionally to an argument in the publisher function.
 
-`s3` suits the largest results, since every backend writes its part of the
-export in parallel. A result can come back as several parquet files, which all
-go to the same table.
+#### `initial_values`
 
-Over `mysql`, column types are mapped from the types Doris reports:
-
-| Doris type | Tabsdata type |
-| --- | --- |
-| `TINYINT` to `BIGINT`, `BOOLEAN` | integer (`BOOLEAN` becomes 0 or 1) |
-| `FLOAT`, `DOUBLE` | float |
-| `DECIMAL` | decimal with precision 38 and the column's scale |
-| `DATE` | date |
-| `DATETIME` | datetime, microseconds |
-| anything else, including `LARGEINT`, `JSON`, `ARRAY`, `MAP` and `STRUCT` | text |
-
-Use `arrow_flight` when a publisher needs the exact Doris types.
-
-### Incremental reads
-
-A query can reference bind parameters as `:name`, the same syntax as the
-built-in SQL sources. `initial_values` gives each parameter its value on the
-first run. On later runs the parameter takes the value the publisher stored with
-`ctx.set_attr(name, value)`, so a query can read only the rows added since the
-last run:
+Values for the bind parameters, written `:name`, inside `queries`. A value is used on the first run only. On later runs the parameter takes the value the publisher stored with `ctx.set_attr(name, value)`, so a query can read only the rows added since the last run:
 
 ```python
 from tabsdatak.api import TrxCtx, publisher
@@ -144,13 +206,25 @@ def new_log_events(log_events, ctx: TrxCtx):
     return log_events
 ```
 
-Arrow Flight SQL and `INTO OUTFILE` don't take query parameters. So that all
-three read methods run the same SQL, each `:name` is replaced with its value as
-an escaped SQL literal before the query is sent. A `:name` inside a string
-literal, a quoted identifier or a comment is left alone, and so is a `:name`
-missing from `initial_values`, which Doris then rejects as a syntax error.
+Each `:name` is replaced with its value as an escaped SQL literal before the query is sent, so all three read methods run the same SQL. A `:name` inside a string literal, a quoted identifier or a comment is left alone.
 
-## Destination connection
+#### `read_method`
+
+Controls how the query results get out of Doris.
+
+`"mysql"` (the default) streams the results over the MySQL protocol and works against any Doris. Every value is converted row by row, so it is the slowest method, and column types are mapped to the closest Tabsdata type: `BOOLEAN` becomes 0 or 1, `DECIMAL` gets precision 38, and `LARGEINT`, `JSON`, `ARRAY`, `MAP` and `STRUCT` become text.
+
+`"arrow_flight"` fetches the results from the Doris backends as Arrow batches over [Arrow Flight SQL](https://doris.apache.org/docs/db-connect/arrow-flight-sql-connect). Column types arrive exactly as Doris stores them. Arrow Flight SQL is off by default: set `arrow_flight_sql_port` in both `fe.conf` and `be.conf`, restart Doris, and set `arrow_flight_port` on the connection. The backends have to be reachable from the Tabsdata server at the address the frontend reports for them.
+
+`"s3"` has the Doris backends export the results to the `staging` bucket as parquet with `SELECT ... INTO OUTFILE`, then downloads the files. It suits the largest results, since every backend writes its part of the export in parallel.
+
+## Subscriber
+
+The `DorisDest` connector can be used by a subscriber function to write data from a Tabsdata table into Doris.
+
+### Connection
+
+Doris subscribers use `DorisDestConn` to define the frontend address, credentials and database the subscriber loads into.
 
 ```yaml
 kind: connectionDef
@@ -170,24 +244,35 @@ spec:
   database: str:my_db
 ```
 
-`tdk` resolves each `$secret:NAME` from the environment variable of the same
-name and stores it as a secret.
+### Connection Config Parameters
 
-| Field | Default | What it's for |
-| --- | --- | --- |
-| `host` | | the Doris frontend |
-| `port` | `9030` | the MySQL protocol port, used to look up table columns, truncate tables and run S3 loads |
-| `http_port` | `8030` | the port that takes stream loads |
-| `credentials` | | user and password |
-| `database` | | the target database |
-| `staging` | none | an `S3Location`, needed only for `load_method="s3"` (see [S3 staging](#s3-staging)) |
+#### `host`
 
-The frontend (8030) redirects each stream load to a backend. On Docker Desktop
-the backend's internal address isn't reachable from your machine, so point
-`http_port` at the backend's own port, 8040. On a real cluster use the
-frontend's 8030.
+The address of the Doris frontend.
 
-## Destination
+#### `port`
+
+The frontend's MySQL protocol port, used to look up table columns, truncate tables and run S3 loads. Defaults to `9030`.
+
+#### `http_port`
+
+The port that takes stream loads. Defaults to `8030`, the frontend, which redirects each load to a backend. On Docker Desktop the backend's internal address isn't reachable from your machine, so use the backend's own port, `8040`, instead.
+
+#### `credentials`
+
+The Doris user and password.
+
+#### `database`
+
+The Doris database the subscriber loads into.
+
+#### `staging`
+
+An S3 bucket that files are staged in before Doris loads them. Only needed for `load_method="s3"`. See [S3 staging](#s3-staging).
+
+### Subscriber
+
+Configure `DorisDest` as the `destination` of a subscriber function to define which tables Tabsdata loads in Doris.
 
 ```python
 from tabsdatak.api import subscriber
@@ -195,44 +280,38 @@ from tabsdata_doris import DorisDest
 
 
 @subscriber(
-    input_tables=["logs_silver/new_log_events@NEW"],
-    destination=DorisDest(tables=["log_events"], if_table_exists="append", load_method="stream_load"),
+    input_tables=["orders"],
+    destination=DorisDest(tables=["orders"], if_table_exists="append", load_method="stream_load"),
 )
-def to_doris(new_log_events):
-    return new_log_events
+def write_orders(orders):
+    return orders
 ```
 
-Each subscriber picks one of two load methods with `load_method`:
+### Function Config Parameters
 
-| `load_method` | How the data gets in | Needs |
-| --- | --- | --- |
-| `stream_load` (default) | each parquet file is sent straight to Doris [stream load](https://doris.apache.org/docs/data-operate/import/import-way/stream-load-manual) over HTTP | the Doris HTTP port |
-| `s3` | the file is uploaded to S3 with the Tabsdata transporter, then `INSERT INTO ... SELECT ... FROM S3(...)` reads it back | a `staging` bucket on the connection that the Doris backends can reach |
+#### `tables`
 
-Stream load suits small, frequent batches. S3 staging suits large loads, since
-every Doris backend reads the staged file in parallel.
+Defines the destination tables the subscriber loads into in Doris.
 
-Rules that apply to both methods:
+Each element in `tables` represents one destination slot and maps positionally to a value returned by the subscriber function. The tables have to exist already, since the key model, partitioning and indexes can't be inferred from the data. Columns are matched to the table's columns by name, and a column the table doesn't have fails the load.
 
-- The target tables must exist. The key model, partitioning and inverted indexes
-  can't be inferred from the data.
-- Parquet columns are matched to table columns by name. A column the table
-  doesn't have fails the load, instead of being dropped.
-- A load commits as one Doris transaction, and strict mode fails the whole load
-  on any row that doesn't fit the table.
-- Each table loads on its own. A failure after some tables loaded leaves those
-  tables loaded.
-- `append` (default) labels each load with a hash of the file. If the same file
-  is retried, Doris sees the same label and skips the load instead of writing
-  duplicate rows.
-- `replace` truncates the table, then loads. A failed load leaves the table
-  empty until the next run.
-- A table with no rows is skipped, since Doris rejects an empty load.
+Each table loads on its own as one Doris transaction, and strict mode fails the whole load on any row that doesn't fit the table. A failure after some tables loaded leaves those tables loaded.
+
+#### `if_table_exists`
+
+Controls what happens to the rows already in the table. `"append"` (the default) adds the new rows. A retried load of the same data is skipped instead of writing duplicate rows. `"replace"` truncates the table, then loads, so a failed load leaves the table empty until the next run.
+
+#### `load_method`
+
+Controls how the data gets into Doris.
+
+`"stream_load"` (the default) sends each file straight to Doris [stream load](https://doris.apache.org/docs/data-operate/import/import-way/stream-load-manual) over HTTP. It suits small, frequent batches.
+
+`"s3"` uploads each file to the `staging` bucket, then has Doris read it back with its `S3()` table function. It suits large loads, since every Doris backend reads the staged file in parallel.
 
 ## S3 staging
 
-`load_method="s3"` and `read_method="s3"` both need a `staging` location, on
-the `DorisDestConn` or the `DorisSrcConn`. The block is the same on both:
+`read_method="s3"` and `load_method="s3"` both need a `staging` location on the connection, and the bucket has to be reachable from the Doris backends:
 
 ```yaml
   staging:
@@ -252,29 +331,4 @@ the `DorisDestConn` or the `DorisSrcConn`. The block is the same on both:
       base_path: str:/doris-staging
 ```
 
-For `read_method="s3"`:
-
-- Doris exports each query's result under
-  `<base_path>/<upload_id>/query_<index>/`, with one `upload_id` per publisher
-  run. Every parquet file under that prefix is then downloaded with the same
-  key pair, which needs `s3:ListBucket` and `s3:GetObject` as well as the
-  `s3:PutObject` the backends need to export.
-- An empty result can export no file. In that case the query's columns are read
-  over the MySQL protocol, so the table is published empty instead of missing.
-- Exported files are left in the bucket, so add a lifecycle rule that expires them.
-- The S3 keys are part of the `INTO OUTFILE` statement sent to Doris.
-
-For `load_method="s3"`, the method replicates the StarRocks connector's staging:
-
-- Files are uploaded under `<base_path>/<upload_id>/<table>/<file>`, with one
-  `upload_id` per subscriber run.
-- The upload goes through the same transporter.
-- Staged files are left in the bucket, so add a lifecycle rule that expires them.
-- The S3 keys are part of the `INSERT` statement sent to Doris, the same way the
-  StarRocks connector passes them to `FILES()`.
-
-It differs from StarRocks in three ways:
-
-- It reads with Doris's `S3()` table function instead of StarRocks's `FILES()`.
-- The insert carries a load label.
-- Only S3 is supported, not Azure or GCS.
+Files are written under `base_path`, with a new folder for every function run, and are left in the bucket afterwards. Add a lifecycle rule to the bucket that expires them. The access key needs `s3:PutObject`, `s3:GetObject` and `s3:ListBucket` on the bucket.

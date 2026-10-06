@@ -1,0 +1,5 @@
+# how this connector is listed on the Community Connectors page of the Tabsdata
+# docs, see "Docs site listing" in the repo README
+name = "MotherDuck"
+summary = "Reads tables from MotherDuck into a Tabsdata publisher and writes subscriber tables back to MotherDuck."
+icon = "icon.png"
