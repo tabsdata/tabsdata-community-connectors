@@ -1,5 +1,7 @@
-# how this connector is listed on the Community Connectors page of the Tabsdata
+# how this connector is listed on the Community Marketplace page of the Tabsdata
 # docs, see "Docs site listing" in the repo README
+active = false
+category = "connectors"
 name = "Apache Doris"
 summary = "Apache Doris is an open-source, real-time analytical database built for fast SQL queries over large datasets. Apache Doris"
 icon = "icon.svg"

@@ -27,11 +27,13 @@ Inside `src/tabsdata_<name>/`:
 
 ## Docs site listing
 
-Connectors in this repo arelisted on the [Community Connectors](https://docs.tabsdata.com/community-connectors) page of the Tabsdata docs.
+Packages in this repo are listed on the [Community Marketplace](https://docs.tabsdata.com/community-marketplace) page of the Tabsdata docs.
 
-An optional `marketplace.toml` in the connector folder sets how the connector is listed. 
+A `marketplace.toml` in the package folder sets whether and how the package is listed. A package is listed only when its `marketplace.toml` sets `active = true`.
 
 ```toml
+active = true
+category = "connectors"
 name = "MotherDuck"
 summary = "Reads tables from MotherDuck into a Tabsdata publisher and writes subscriber tables back to MotherDuck."
 icon = "icon.svg"
@@ -39,6 +41,8 @@ icon = "icon.svg"
 
 | Key | Used for | When it's left out |
 | --- | --- | --- |
+| `active` | `true` lists the package, `false` keeps it off the site | the package is not listed |
+| `category` | the marketplace tab the package is listed under. `connectors` or `integrations` | `connectors` |
 | `name` | the connector's name on its card | 
 | `summary` | the page description shown in search results | 
 | `icon` | the image on the card and the page, an `.svg`, `.png`, `.jpg` or `.webp` path relative to the connector folder | 

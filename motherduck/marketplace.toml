@@ -1,5 +1,7 @@
-# how this connector is listed on the Community Connectors page of the Tabsdata
+# how this connector is listed on the Community Marketplace page of the Tabsdata
 # docs, see "Docs site listing" in the repo README
+active = true
+category = "connectors"
 name = "MotherDuck"
 summary = "MotherDuck is a serverless cloud data warehouse built on DuckDB for fast, scalable analytics."
 icon = "icon.png"
