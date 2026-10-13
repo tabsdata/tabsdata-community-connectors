@@ -1,6 +1,6 @@
 # how this connector is listed on the Community Marketplace page of the Tabsdata
 # docs, see "Docs site listing" in the repo README
-active = false
+active = true
 category = "connectors"
 name = "Slack"
 summary = "Slack is a messaging app that organizes team conversations into channels."
