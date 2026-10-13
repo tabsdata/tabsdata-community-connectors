@@ -4,3 +4,4 @@ active = false
 category = "connectors"
 name = "Google Sheets"
 summary = "Google Sheets is a spreadsheet app for creating, sharing, and editing spreadsheets online."
+icon = "icon.svg"

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tabsdata-conn-googlesheets"
-version = "0.1.0"
+version = "0.1.1"
 description = "Tabsdata connector that reads publisher tables from and writes subscriber tables to Google Sheets."
 requires-python = ">=3.12"
 # google-auth, polars and requests are left unpinned so the versions tabsdata

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "tabsdata-conn-slack"
-version = "0.1.0"
+version = "0.1.1"
 description = "Tabsdata connector that reads Slack channel messages into publisher tables and posts subscriber tables to Slack channels."
 requires-python = ">=3.12"
 # polars and requests are left unpinned so the versions tabsdata pins are used

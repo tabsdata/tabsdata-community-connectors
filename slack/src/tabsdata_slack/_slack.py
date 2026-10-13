@@ -25,7 +25,7 @@ SCHEMA = pl.Schema(
     {
         "ts": pl.String,
         "channel": pl.String,
-        "user": pl.String,
+        "user_id": pl.String,
         "bot_id": pl.String,
         "subtype": pl.String,
         "text": pl.String,
@@ -128,7 +128,7 @@ def to_frame(messages: list[dict], channel: str) -> pl.DataFrame:
         {
             "ts": message["ts"],
             "channel": channel,
-            "user": message.get("user"),
+            "user_id": message.get("user"),
             "bot_id": message.get("bot_id"),
             "subtype": message.get("subtype"),
             "text": message.get("text"),

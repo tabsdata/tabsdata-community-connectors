@@ -185,6 +185,16 @@ def test_text_is_written_raw_and_lists_as_json(ctx, tmp_path, sheets_api):
     assert session.received[2]["json"]["values"][1] == ["=1+1", json.dumps(["x", "y"])]
 
 
+def test_text_is_cut_at_the_cell_limit(ctx, tmp_path, sheets_api):
+    from tabsdata_googlesheets import _sheets
+
+    session = sheets_api(titles("Totals"), FakeResponse(), FakeResponse())
+
+    write(ctx, tmp_path, [pl.DataFrame({"raw": ["x" * (_sheets.MAX_CELL + 10)]})])
+
+    assert len(session.received[2]["json"]["values"][1][0]) == _sheets.MAX_CELL
+
+
 def test_none_tables_are_skipped(ctx, tmp_path, sheets_api):
     session = sheets_api()
 

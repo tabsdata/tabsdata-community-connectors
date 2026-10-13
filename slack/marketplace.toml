@@ -4,3 +4,4 @@ active = false
 category = "connectors"
 name = "Slack"
 summary = "Slack is a messaging app that organizes team conversations into channels."
+icon = "icon.svg"

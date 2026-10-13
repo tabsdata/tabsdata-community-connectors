@@ -19,6 +19,8 @@ WRITE_SCOPE = "https://www.googleapis.com/auth/spreadsheets"
 TIMEOUT = 60
 # rows sent per append request, keeps each request well under the api's size limit
 CHUNK_ROWS = 5000
+# most characters google sheets allows in one cell
+MAX_CELL = 50000
 
 
 # helper function that opens an authorized session for the service account key,
@@ -95,17 +97,16 @@ def to_frame(values: list[list[str]], header: bool) -> pl.DataFrame:
 
 # helper function that converts a table value into one the api accepts, numbers
 # and booleans stay as they are so the sheet treats them as numbers, nulls become
-# blank cells and everything else is written as text
+# blank cells and everything else is written as text, cut at the cell limit
 def to_cell(value):
     if value is None or (isinstance(value, float) and not math.isfinite(value)):
         return ""
-    if isinstance(value, bool | int | float | str):
+    if isinstance(value, bool | int | float):
         return value
     if isinstance(value, datetime | date | time):
         return value.isoformat()
-    if isinstance(value, list | dict):
-        return json.dumps(value, default=str)
-    return str(value)
+    text = json.dumps(value, default=str) if isinstance(value, list | dict) else str(value)
+    return text[:MAX_CELL]
 
 
 def to_rows(frame: pl.DataFrame) -> list[list]:
