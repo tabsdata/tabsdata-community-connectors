@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tabsdata-conn-slack"
+version = "0.1.0"
+description = "Tabsdata connector that reads Slack channel messages into publisher tables and posts subscriber tables to Slack channels."
+requires-python = ">=3.12"
+# polars and requests are left unpinned so the versions tabsdata pins are used
+dependencies = [
+    "tabsdata>=2.1",
+    "polars",
+    "requests",
+]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+# entry point tabsdata uses to discover the connector, same mechanism as its
+# built in connectors
+[project.entry-points."tabsdatak.connectors"]
+src_slack = "tabsdata_slack._plugin:SLACK_SRC"
+dest_slack = "tabsdata_slack._plugin:SLACK_DEST"
+
+[tool.setuptools.packages.find]
+where = ["src"]
