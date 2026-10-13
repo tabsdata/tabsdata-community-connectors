@@ -23,11 +23,12 @@ Add the connector to a `requirements.txt` file:
 tabsdata-conn-motherduck @ git+https://github.com/tabsdata/tabsdata-community-connectors.git#subdirectory=motherduck
 ```
 
-Then update the function environment and restart the server:
+Then update the function and agent environments and restart the server:
 
 ```bash
-tdkserver venv update --name fn --requirements requirements.txt
-tdkserver start
+tdkserver venv update --instance <instance> --name fn --requirements requirements.txt
+tdkserver venv update --instance <instance> --name ag --requirements requirements.txt
+tdkserver start --instance <instance>
 ```
 
 > **Warning:** `tdkserver venv update` overwrites the existing package requirements for the function environment. Include every package the environment still needs in `requirements.txt`, not just this connector.
@@ -44,7 +45,7 @@ tdk connection template --type motherduck-in --file conn-motherduck-in.yaml
 
 ### Step 2: Configure the connection
 
-Set the MotherDuck API token and the database the publisher will query:
+Set the MotherDuck token and the database to query:
 
 ```yaml
 kind: connectionDef
@@ -55,7 +56,7 @@ spec:
   database: str:my_db
 ```
 
-If a `secret:` prefix is provided, Tabsdata stores the resolved token as a secret and removes it from the stored connection document. The `str:` prefix marks `my_db` as plaintext, so the database name remains visible in the connection document.
+The `secret:` prefix tells Tabsdata to store the token as a secret and remove it from the stored connection document. The `str:` prefix keeps a value as plain text, so the database name stays visible in the connection document.
 
 ### Step 3: Attach the connection to a collection
 
@@ -67,10 +68,10 @@ To create a new collection with the connection instead, pass the same `--conn-fi
 
 ### Step 4: Create a publisher
 
-Configure `MotherDuckSrc` as the publisher's `source` and provide `queries` to execute against your motherduck db.
+Configure `MotherDuckSrc` as the publisher's `source` and list the `queries` to run.
 
 ```python
-from tabsdatak.api import publisher
+from tabsdatak.api import TableFrameSpec, publisher
 from tabsdata_motherduck import MotherDuckSrc
 
 
@@ -83,7 +84,9 @@ from tabsdata_motherduck import MotherDuckSrc
     ),
     output_tables=["customers", "orders"],
 )
-def pub_motherduck(customers, orders):
+def pub_motherduck(
+    customers: TableFrameSpec, orders: TableFrameSpec
+) -> tuple[TableFrameSpec, TableFrameSpec]:
     return customers, orders
 ```
 
@@ -97,9 +100,7 @@ tdk fn register --coll md_landing --path pub_motherduck.py::pub_motherduck
 
 #### `token`
 
-The MotherDuck access token.
-
-For publishers, the token only needs read access.
+A MotherDuck access token. For publishers, it only needs read access.
 
 #### `database`
 
@@ -109,36 +110,20 @@ The MotherDuck database the queries run against.
 
 #### `queries`
 
-Defines the SQL queries the publisher runs against MotherDuck.
+The SQL queries to run against MotherDuck.
 
 Each query represents one source slot and maps positionally to an argument in the publisher function.
 
-For example:
-
-```python
-@publisher(
-    source=MotherDuckSrc(
-        queries=[
-            "SELECT * FROM customers",
-            "SELECT * FROM orders",
-        ]
-    ),
-    output_tables=["customers", "orders"],
-)
-def pub_motherduck(customers, orders):
-    return customers, orders
-```
-
 #### `initial_values`
 
-Defines initial values for DuckDB bind parameters written as `$name` inside a query.
+Starting values for bind parameters, written as `$name` in a query.
 
-The initial value is used on the first run. On later runs, the parameter uses the value stored by the publisher with `ctx.set_attr(name, value)`.
+The first run uses the starting value. After that, the parameter uses whatever the publisher saved with `ctx.set_attr(name, value)`.
 
-This can be used to incrementally read rows added since the previous run:
+You can use this to read only the rows added since the last run:
 
 ```python
-from tabsdatak.api import TrxCtx, publisher
+from tabsdatak.api import TableFrameSpec, TrxCtx, publisher
 from tabsdata_motherduck import MotherDuckSrc
 
 
@@ -153,7 +138,7 @@ from tabsdata_motherduck import MotherDuckSrc
     ),
     output_tables=["new_orders"],
 )
-def new_orders(orders, ctx: TrxCtx):
+def new_orders(orders: TableFrameSpec, ctx: TrxCtx) -> TableFrameSpec:
     row = orders.max_for("order_id")
 
     if row is not None and row["order_id"] is not None:
@@ -164,7 +149,7 @@ def new_orders(orders, ctx: TrxCtx):
 
 ## Subscriber
 
-Use `MotherDuckDest` in a subscriber function to write Tabsdata tables into MotherDuck.
+Use `MotherDuckDest` in a subscriber function to write Tabsdata tables to MotherDuck.
 
 ### Step 1: Generate the connection document
 
@@ -174,14 +159,14 @@ tdk connection template --type motherduck-out --file conn-motherduck-out.yaml
 
 ### Step 2: Configure the connection
 
-Set the MotherDuck API token and destination database:
+Set the MotherDuck token and the database to write to:
 
 ```yaml
 kind: connectionDef
 apiVersion: '1.0'
 type: tabsdata_motherduck:MotherDuckDestConn
 spec:
-  token: $secret:MOTHERDUCK__TOKEN
+  token: secret:MOTHERDUCK__TOKEN
   database: str:my_db
 ```
 
@@ -200,7 +185,7 @@ Configure `MotherDuckDest` as the subscriber's `destination`.
 Each table in `tables` maps positionally to a value returned by the subscriber function.
 
 ```python
-from tabsdatak.api import subscriber
+from tabsdatak.api import TableFrameSpec, subscriber
 from tabsdata_motherduck import MotherDuckDest
 
 
@@ -216,7 +201,9 @@ from tabsdata_motherduck import MotherDuckDest
         ]
     ),
 )
-def sub_motherduck(customers, orders):
+def sub_motherduck(
+    customers: TableFrameSpec, orders: TableFrameSpec
+) -> tuple[TableFrameSpec, TableFrameSpec]:
     return customers, orders
 ```
 
@@ -230,33 +217,29 @@ tdk fn register --coll md_export --path sub_motherduck.py::sub_motherduck
 
 #### `token`
 
-The MotherDuck access token.
-
-For subscribers, the token needs write access.
+A MotherDuck access token. For subscribers, it needs write access.
 
 #### `database`
 
-The MotherDuck database the subscriber writes to.
-
-The database is created if it does not already exist.
+The MotherDuck database to write to. It's created if it doesn't exist.
 
 ### Subscriber parameters
 
 #### `tables`
 
-Defines the destination tables the subscriber writes to in MotherDuck.
+The MotherDuck tables to write to.
 
 Each table represents one destination slot and maps positionally to a value returned by the subscriber function.
 
-Table names can contain letters, digits, and underscores, but cannot start with a digit.
+Table names can use letters, digits, and underscores, and can't start with a digit.
 
-All tables in a subscriber run are written in one transaction. If writing any table fails, all table writes from that run are rolled back.
+All tables in a run are written in one transaction. If any table fails, none of them are written.
 
 #### `if_table_exists`
 
-Controls what happens when a destination table already exists.
+What to do when a table already exists.
 
-`"replace"` is the default and recreates the table from the new data:
+`"replace"` is the default. It drops the table and recreates it with the new data:
 
 ```python
 destination=MotherDuckDest(
@@ -265,7 +248,7 @@ destination=MotherDuckDest(
 )
 ```
 
-`"append"` inserts the new rows into the existing table and matches columns by name. If the table does not exist, it is created automatically:
+`"append"` adds the new rows to the existing table, matching columns by name. The table is created if it doesn't exist:
 
 ```python
 destination=MotherDuckDest(

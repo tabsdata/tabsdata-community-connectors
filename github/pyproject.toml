@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "tabsdata-conn-github"
+version = "0.1.1"
+description = "Tabsdata connector that reads the issues, pull requests, comments, commits and releases of GitHub repositories into publisher tables."
+requires-python = ">=3.12"
+# polars and requests are left unpinned so the versions tabsdata pins are used
+dependencies = [
+    "tabsdata>=2.1",
+    "polars",
+    "requests",
+]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+# entry point tabsdata uses to discover the connector, same mechanism as its
+# built in connectors
+[project.entry-points."tabsdatak.connectors"]
+src_github = "tabsdata_github._plugin:GITHUB_SRC"
+
+[tool.setuptools.packages.find]
+where = ["src"]
