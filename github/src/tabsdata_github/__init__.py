@@ -31,16 +31,18 @@ from dataclasses import KW_ONLY
 from datetime import datetime
 from typing import Annotated, Literal, Union
 
-from pydantic import Field, StringConstraints
-
 import tabsdatak._api as _api
+from pydantic import Field, StringConstraints
 from tabsdatak.api import Secret, Src, StrOrSecretSpec
 from tabsdatak.spi import Conn
+
 from tabsdata_github._model import SCHEMAS
 from tabsdata_github.error import GitHubErrorCode
 
 # restricts repositories to the owner/name form used in the api urls
-RepositoryName = Annotated[str, StringConstraints(pattern=r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")]
+RepositoryName = Annotated[
+    str, StringConstraints(pattern=r"^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$")
+]
 
 # extra text columns filled from the labels, column name to the labels it looks for
 LabelColumns = dict[str, list[str]]
@@ -55,7 +57,9 @@ def resolve(spec: StrOrSecretSpec) -> str:
 def check_label_columns(resource: str, label_columns: LabelColumns) -> None:
     taken = set(SCHEMAS[resource]).intersection(label_columns)
     if taken:
-        raise ValueError(f"label columns clash with {resource} columns: {sorted(taken)}")
+        raise ValueError(
+            f"label columns clash with {resource} columns: {sorted(taken)}"
+        )
 
 
 @_api.dataclass(GitHubErrorCode.GITHUB_1, kw_only=True)
@@ -138,7 +142,10 @@ class Releases:
 
 
 # a table entry, resource tells pydantic which class to load it back into
-Table = Annotated[Union[Issues, PullRequests, IssueComments, Commits, Releases], Field(discriminator="resource")]
+Table = Annotated[
+    Union[Issues, PullRequests, IssueComments, Commits, Releases],
+    Field(discriminator="resource"),
+]
 
 # a source needs at least one table since each table is one output table
 Tables = Annotated[list[Table], _api.NON_EMPTY_LIST_FIELD]
@@ -148,7 +155,9 @@ Tables = Annotated[list[Table], _api.NON_EMPTY_LIST_FIELD]
 # reordering tables keeps each watermark
 def table_key(table: Table) -> str:
     branch = getattr(table, "branch", None)
-    return f"github.{table.resource}.{table.repository}" + (f"@{branch}" if branch else "")
+    return f"github.{table.resource}.{table.repository}" + (
+        f"@{branch}" if branch else ""
+    )
 
 
 @_api.dataclass(GitHubErrorCode.GITHUB_2, kw_only=True)
